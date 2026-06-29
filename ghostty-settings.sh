@@ -6,116 +6,19 @@
 
 set -euo pipefail
 
-# ── Config location ──────────────────────────────────────────────────────────
-find_config() {
-  local candidates=(
-    "${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config"
-    "$HOME/.config/ghostty/config"
-  )
-  for f in "${candidates[@]}"; do
-    [[ -f "$f" ]] && echo "$f" && return
-  done
-  # Not found — create default location
-  local default="${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config"
-  mkdir -p "$(dirname "$default")"
-  touch "$default"
-  echo "$default"
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/helpers.sh
+source "$SCRIPT_DIR/lib/helpers.sh"
 
 CONFIG="$(find_config)"
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
 HAS_FZF=0
 command -v fzf &>/dev/null && HAS_FZF=1
 
 HAS_GHOSTTY=0
 command -v ghostty &>/dev/null && HAS_GHOSTTY=1
 
-# Pick from a list. Args: prompt, then items as separate args.
-pick() {
-  local prompt="$1"; shift
-  local items=("$@")
-  if [[ $HAS_FZF -eq 1 ]]; then
-    printf '%s\n' "${items[@]}" | fzf --prompt="$prompt > " --height=40% --border --ansi
-  else
-    echo "$prompt"
-    select item in "${items[@]}"; do
-      [[ -n "$item" ]] && echo "$item" && return
-    done
-  fi
-}
-
-# Read a single value with current shown
-prompt_value() {
-  local label="$1" current="$2"
-  echo "Current $label: $current"
-  printf "New value (blank = keep): "
-  read -r val
-  echo "${val:-$current}"
-}
-
-# Get current value of a key from config (last occurrence wins)
-get_val() {
-  local key="$1"
-  grep -E "^${key}\s*=" "$CONFIG" 2>/dev/null | tail -1 | sed 's/^[^=]*=\s*//' | xargs
-}
-
-# Set a key=value in config. Replaces last occurrence or appends.
-set_val() {
-  local key="$1" val="$2"
-  if grep -qE "^${key}\s*=" "$CONFIG" 2>/dev/null; then
-    # Replace last occurrence (portable sed)
-    local tmp
-    tmp="$(mktemp)"
-    awk -v key="$key" -v val="$val" '
-      /^[[:space:]]*#/ { print; next }
-      match($0, "^"key"[[:space:]]*=") {
-        last_line=NR; last_val=val
-        lines[NR]=$0
-        next
-      }
-      { lines[NR]=$0 }
-      END {
-        for (i=1; i<=NR; i++) {
-          if (i==last_line) print key" = "last_val
-          else print lines[i]
-        }
-      }
-    ' "$CONFIG" > "$tmp" && mv "$tmp" "$CONFIG"
-  else
-    echo "${key} = ${val}" >> "$CONFIG"
-  fi
-}
-
-# Remove all lines for a key (used before adding multiple values)
-remove_key() {
-  local key="$1"
-  local tmp
-  tmp="$(mktemp)"
-  grep -vE "^${key}\s*=" "$CONFIG" > "$tmp" && mv "$tmp" "$CONFIG"
-}
-
-validate_and_reload() {
-  if [[ $HAS_GHOSTTY -eq 1 ]]; then
-    local errors
-    errors="$(ghostty +validate-config 2>&1 || true)"
-    if [[ -n "$errors" ]]; then
-      echo ""
-      echo "⚠ Config validation errors:"
-      echo "$errors"
-      echo "Press Enter to continue..."
-      read -r
-      return 1
-    fi
-    ghostty +reload-config 2>/dev/null || true
-    echo "✓ Config saved and reloaded."
-  else
-    echo "✓ Config saved (ghostty not in PATH — reload manually)."
-  fi
-  sleep 1
-}
-
-# ── Sections ─────────────────────────────────────────────────────────────────
+# ── Sections ──────────────────────────────────────────────────────────────────
 
 section_theme() {
   local current
@@ -259,9 +162,8 @@ section_performance() {
 
 section_keybinds() {
   while true; do
-    # Read current keybinds from config
     local current_binds=()
-    mapfile -t current_binds < <(grep -E "^keybind\s*=" "$CONFIG" 2>/dev/null | sed 's/^keybind\s*=\s*//')
+    mapfile -t current_binds < <(grep -E "^keybind[[:space:]]*=" "$CONFIG" 2>/dev/null | sed 's/^keybind[[:space:]]*=[[:space:]]*//')
 
     local sub
     sub="$(pick "Keybinds" \
@@ -307,7 +209,6 @@ section_keybinds() {
         local chosen
         chosen="$(pick "Remove which binding" "${current_binds[@]}")" || continue
         [[ -z "$chosen" ]] && continue
-        # Remove that exact keybind line
         local tmp
         tmp="$(mktemp)"
         grep -vF "keybind = $chosen" "$CONFIG" > "$tmp" && mv "$tmp" "$CONFIG"
@@ -318,7 +219,7 @@ section_keybinds() {
   done
 }
 
-# ── Main menu ─────────────────────────────────────────────────────────────────
+# ── Main menu ──────────────────────────────────────────────────────────────────
 
 main() {
   while true; do
