@@ -43,7 +43,12 @@ section_theme() {
   current="${current:-(not set)}"
 
   local themes=()
-  if [[ $HAS_GHOSTTY -eq 1 ]] && ! _inside_ghostty; then
+  # Prefer reading themes from Ghostty's bundled resources dir (works inside Ghostty too)
+  if [[ -n "${GHOSTTY_RESOURCES_DIR:-}" && -d "$GHOSTTY_RESOURCES_DIR/themes" ]]; then
+    _dbg "section_theme: reading themes from $GHOSTTY_RESOURCES_DIR/themes"
+    mapfile -t themes < <(find "$GHOSTTY_RESOURCES_DIR/themes/" -maxdepth 1 -type f -exec basename {} \; 2>/dev/null | sort)
+    _dbg "section_theme: got ${#themes[@]} themes from resources"
+  elif [[ $HAS_GHOSTTY -eq 1 ]] && ! _inside_ghostty; then
     _dbg "section_theme: running ghostty +list-themes"
     mapfile -t raw < <(ghostty +list-themes 2>/dev/null | sed 's/ (resources)$//' | sed 's/ (user)$//')
     _dbg "section_theme: got ${#raw[@]} themes"
