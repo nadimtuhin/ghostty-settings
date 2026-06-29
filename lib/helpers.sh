@@ -116,9 +116,9 @@ validate_and_reload() {
     fi
     # NOTE: ghostty +reload-config sends a signal to the running Ghostty instance.
     # If this TUI is running INSIDE Ghostty, the reload may restart/crash the window.
-    # We warn the user and skip reload in that case.
-    if [[ -n "${GHOSTTY_PID:-}" ]]; then
-      _dbg "validate_and_reload: inside Ghostty (GHOSTTY_PID=$GHOSTTY_PID) — skipping reload, config saved"
+    # Detect via TERM_PROGRAM=ghostty (set by Ghostty on macOS; GHOSTTY_PID is NOT set).
+    if [[ "${TERM_PROGRAM:-}" == "ghostty" ]]; then
+      _dbg "validate_and_reload: inside Ghostty (TERM_PROGRAM=ghostty) — skipping reload, config saved"
       echo "✓ Config saved. Ghostty will apply changes on next launch or manual ⌘R."
     else
       _dbg "validate_and_reload: running ghostty +reload-config"

@@ -24,7 +24,7 @@ _dbg "startup: HAS_FZF=$HAS_FZF"
 
 HAS_GHOSTTY=0
 command -v ghostty &>/dev/null && HAS_GHOSTTY=1
-_dbg "startup: HAS_GHOSTTY=$HAS_GHOSTTY GHOSTTY_PID=${GHOSTTY_PID:-unset}"
+_dbg "startup: HAS_GHOSTTY=$HAS_GHOSTTY TERM_PROGRAM=${TERM_PROGRAM:-unset}"
 
 # ── Sections ──────────────────────────────────────────────────────────────────
 
