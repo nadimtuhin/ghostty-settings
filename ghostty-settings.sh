@@ -5,6 +5,7 @@
 # Optional: fzf (falls back to select+read without it)
 
 set -euo pipefail
+trap 'echo ""; exit 0' INT TERM
 
 _src="${BASH_SOURCE[0]}"
 # resolve symlink so lib/ is found relative to the real file, not the bin symlink
