@@ -98,7 +98,7 @@ if [[ $UPDATE_ONLY -eq 1 ]]; then
   fi
   info "Checking for updates (current: $current)..."
   latest="$(latest_version_or_main)"
-  if [[ "$current" == "$latest" ]]; then
+  if [[ "$current" == "$latest" && "$latest" != "main" ]]; then
     success "Already up to date ($current)."
     exit 0
   fi
