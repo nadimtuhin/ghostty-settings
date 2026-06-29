@@ -56,11 +56,19 @@ latest_version() {
     | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/'
 }
 
-# Fallback when no releases exist yet — use main
 latest_version_or_main() {
   local ver
   ver="$(latest_version 2>/dev/null || true)"
-  echo "${ver:-main}"
+  if [[ -n "$ver" ]]; then
+    echo "$ver"
+    return
+  fi
+  # No releases — use the latest commit SHA on main so raw.githubusercontent.com
+  # resolves correctly (branch paths with subdirs can 400 on GitHub's CDN).
+  local sha
+  sha="$(curl -fsSL "https://api.github.com/repos/$REPO/commits/main" \
+    | grep '"sha"' | head -1 | sed 's/.*"sha": *"\([^"]*\)".*/\1/')"
+  echo "${sha:-main}"
 }
 
 download_and_install() {
@@ -99,12 +107,12 @@ if [[ $UPDATE_ONLY -eq 1 ]]; then
   info "Checking for updates (current: $current)..."
   latest="$(latest_version_or_main)"
   # When pinned to main (no releases), always re-download — main is a moving ref
-  if [[ "$current" == "$latest" && "$latest" != "main" ]]; then
+  if [[ "$current" == "$latest" && "$latest" != "main" && ! "$latest" =~ ^[0-9a-f]{40}$ ]]; then
     success "Already up to date ($current)."
     exit 0
   fi
-  if [[ "$latest" == "main" ]]; then
-    info "No releases found — pulling latest from main branch"
+  if [[ "$latest" =~ ^[0-9a-f]{40}$ ]]; then
+    info "No releases found — pulling latest commit (${latest:0:7})"
   else
     info "Update available: $current → $latest"
   fi
