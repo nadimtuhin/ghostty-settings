@@ -26,19 +26,40 @@ No GUI. No deps beyond bash. Uses fzf if available, falls back to bash `select` 
 
 ## Install
 
+**One-liner (recommended):**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nadimtuhin/ghostty-settings/main/install.sh | bash
+```
+
+Installs to `~/.local/share/ghostty-settings/` and symlinks to `~/.local/bin/ghostty-settings`.
+
+**Specific version:**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nadimtuhin/ghostty-settings/main/install.sh | bash -s -- --version v1.2.0
+```
+
+**Update to latest:**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nadimtuhin/ghostty-settings/main/install.sh | bash -s -- --update
+```
+
+**Or just clone and run:**
+
 ```sh
 git clone https://github.com/nadimtuhin/ghostty-settings
 cd ghostty-settings
-chmod +x ghostty-settings.sh
 ./ghostty-settings.sh
 ```
 
-Or drop it somewhere on your PATH:
+**Custom install paths:**
 
 ```sh
-cp ghostty-settings.sh ~/.local/bin/ghostty-settings
-chmod +x ~/.local/bin/ghostty-settings
-ghostty-settings
+GHOSTTY_SETTINGS_DIR=~/opt/ghostty-settings \
+GHOSTTY_SETTINGS_BIN=~/bin \
+  bash install.sh
 ```
 
 ## What it does
