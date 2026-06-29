@@ -98,11 +98,16 @@ if [[ $UPDATE_ONLY -eq 1 ]]; then
   fi
   info "Checking for updates (current: $current)..."
   latest="$(latest_version_or_main)"
+  # When pinned to main (no releases), always re-download — main is a moving ref
   if [[ "$current" == "$latest" && "$latest" != "main" ]]; then
     success "Already up to date ($current)."
     exit 0
   fi
-  info "Update available: $current → $latest"
+  if [[ "$latest" == "main" ]]; then
+    info "No releases found — pulling latest from main branch"
+  else
+    info "Update available: $current → $latest"
+  fi
   download_and_install "$latest"
   success "Updated to $latest"
   exit 0

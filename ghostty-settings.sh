@@ -18,6 +18,15 @@ _dbg "startup: SCRIPT_DIR=$SCRIPT_DIR"
 CONFIG="$(find_config)"
 _dbg "startup: CONFIG=$CONFIG"
 
+# ── Version ───────────────────────────────────────────────────────────────────
+VERSION_FILE="$SCRIPT_DIR/.version"
+GHOSTTY_SETTINGS_VERSION="$(cat "$VERSION_FILE" 2>/dev/null || echo "dev")"
+
+if [[ "${1:-}" == "--version" || "${1:-}" == "-v" ]]; then
+  echo "ghostty-settings $GHOSTTY_SETTINGS_VERSION"
+  exit 0
+fi
+
 HAS_FZF=0
 command -v fzf &>/dev/null && HAS_FZF=1
 _dbg "startup: HAS_FZF=$HAS_FZF"
@@ -237,7 +246,7 @@ main() {
   while true; do
     clear
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  Ghostty Settings"
+    echo "  Ghostty Settings ($GHOSTTY_SETTINGS_VERSION)"
     echo "  Config: $CONFIG"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
