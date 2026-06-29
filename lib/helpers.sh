@@ -98,9 +98,23 @@ prompt_value() {
   echo "${val:-$current}"
 }
 
+# Returns true if running inside a Ghostty terminal session
+_inside_ghostty() {
+  [[ "${TERM_PROGRAM:-}" == "ghostty" ]]
+}
+
 # Validate config and reload ghostty if available
+# NOTE: ghostty +validate-config and +reload-config require a running GUI instance
+# and will crash/hang when invoked from inside Ghostty on macOS. Skip them when
+# TERM_PROGRAM=ghostty; user can press cmd+shift+, to reload manually.
 validate_and_reload() {
-  _dbg "validate_and_reload: HAS_GHOSTTY=$HAS_GHOSTTY"
+  _dbg "validate_and_reload: HAS_GHOSTTY=$HAS_GHOSTTY inside_ghostty=$(_inside_ghostty && echo yes || echo no)"
+  if _inside_ghostty; then
+    _dbg "validate_and_reload: inside Ghostty — skipping all ghostty subcommands (crash risk)"
+    echo "✓ Config saved. Press cmd+shift+, in Ghostty to reload."
+    sleep 1
+    return 0
+  fi
   if [[ ${HAS_GHOSTTY:-0} -eq 1 ]]; then
     _dbg "validate_and_reload: running ghostty +validate-config"
     local errors
@@ -114,18 +128,10 @@ validate_and_reload() {
       read -r
       return 1
     fi
-    # NOTE: ghostty +reload-config sends a signal to the running Ghostty instance.
-    # If this TUI is running INSIDE Ghostty, the reload may restart/crash the window.
-    # Detect via TERM_PROGRAM=ghostty (set by Ghostty on macOS; GHOSTTY_PID is NOT set).
-    if [[ "${TERM_PROGRAM:-}" == "ghostty" ]]; then
-      _dbg "validate_and_reload: inside Ghostty (TERM_PROGRAM=ghostty) — skipping reload, config saved"
-      echo "✓ Config saved. Ghostty will apply changes on next launch or manual ⌘R."
-    else
-      _dbg "validate_and_reload: running ghostty +reload-config"
-      ghostty +reload-config 2>/dev/null || true
-      _dbg "validate_and_reload: reload done"
-      echo "✓ Config saved and reloaded."
-    fi
+    _dbg "validate_and_reload: running ghostty +reload-config"
+    ghostty +reload-config 2>/dev/null || true
+    _dbg "validate_and_reload: reload done"
+    echo "✓ Config saved and reloaded."
   else
     echo "✓ Config saved (ghostty not in PATH — reload manually)."
   fi

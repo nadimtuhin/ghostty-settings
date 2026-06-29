@@ -34,7 +34,7 @@ section_theme() {
   current="${current:-(not set)}"
 
   local themes=()
-  if [[ $HAS_GHOSTTY -eq 1 ]]; then
+  if [[ $HAS_GHOSTTY -eq 1 ]] && ! _inside_ghostty; then
     _dbg "section_theme: running ghostty +list-themes"
     mapfile -t raw < <(ghostty +list-themes 2>/dev/null | sed 's/ (resources)$//' | sed 's/ (user)$//')
     _dbg "section_theme: got ${#raw[@]} themes"
@@ -67,7 +67,7 @@ section_font() {
     case "$sub" in
       font-family)
         local families=()
-        if [[ $HAS_GHOSTTY -eq 1 ]]; then
+        if [[ $HAS_GHOSTTY -eq 1 ]] && ! _inside_ghostty; then
           _dbg "section_font: running ghostty +list-fonts"
           mapfile -t families < <(ghostty +list-fonts 2>/dev/null | grep -E '^\s+"' | sed 's/.*"\(.*\)".*/\1/' | sort -u)
           _dbg "section_font: got ${#families[@]} families"
