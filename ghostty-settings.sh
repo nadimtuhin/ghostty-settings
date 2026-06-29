@@ -14,13 +14,17 @@ unset _src
 # shellcheck source=lib/helpers.sh
 source "$SCRIPT_DIR/lib/helpers.sh"
 
+_dbg "startup: SCRIPT_DIR=$SCRIPT_DIR"
 CONFIG="$(find_config)"
+_dbg "startup: CONFIG=$CONFIG"
 
 HAS_FZF=0
 command -v fzf &>/dev/null && HAS_FZF=1
+_dbg "startup: HAS_FZF=$HAS_FZF"
 
 HAS_GHOSTTY=0
 command -v ghostty &>/dev/null && HAS_GHOSTTY=1
+_dbg "startup: HAS_GHOSTTY=$HAS_GHOSTTY GHOSTTY_PID=${GHOSTTY_PID:-unset}"
 
 # ── Sections ──────────────────────────────────────────────────────────────────
 
@@ -31,7 +35,9 @@ section_theme() {
 
   local themes=()
   if [[ $HAS_GHOSTTY -eq 1 ]]; then
+    _dbg "section_theme: running ghostty +list-themes"
     mapfile -t raw < <(ghostty +list-themes 2>/dev/null | sed 's/ (resources)$//' | sed 's/ (user)$//')
+    _dbg "section_theme: got ${#raw[@]} themes"
     themes=("${raw[@]}")
   fi
 
@@ -62,7 +68,9 @@ section_font() {
       font-family)
         local families=()
         if [[ $HAS_GHOSTTY -eq 1 ]]; then
+          _dbg "section_font: running ghostty +list-fonts"
           mapfile -t families < <(ghostty +list-fonts 2>/dev/null | grep -E '^\s+"' | sed 's/.*"\(.*\)".*/\1/' | sort -u)
+          _dbg "section_font: got ${#families[@]} families"
         fi
         local current
         current="$(get_val font-family)"

@@ -2,16 +2,27 @@
 # lib/helpers.sh — sourced by ghostty-settings.sh and test suite
 # Do not run directly.
 
+# Debug logging — set GHOSTTY_SETTINGS_DEBUG=1 to enable
+_dbg() {
+  [[ "${GHOSTTY_SETTINGS_DEBUG:-0}" -eq 1 ]] || return 0
+  printf '[DEBUG %s] %s\n' "$(date +%T)" "$*" >&2
+}
+
 # ── Config detection ──────────────────────────────────────────────────────────
 find_config() {
+  _dbg "find_config: searching for ghostty config"
   local candidates=(
     "${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config"
     "$HOME/.config/ghostty/config"
   )
   for f in "${candidates[@]}"; do
-    [[ -f "$f" ]] && echo "$f" && return
+    if [[ -f "$f" ]]; then
+      _dbg "find_config: found $f"
+      echo "$f" && return
+    fi
   done
   local default="${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config"
+  _dbg "find_config: not found, creating $default"
   mkdir -p "$(dirname "$default")"
   touch "$default"
   echo "$default"
@@ -89,9 +100,12 @@ prompt_value() {
 
 # Validate config and reload ghostty if available
 validate_and_reload() {
+  _dbg "validate_and_reload: HAS_GHOSTTY=$HAS_GHOSTTY"
   if [[ ${HAS_GHOSTTY:-0} -eq 1 ]]; then
+    _dbg "validate_and_reload: running ghostty +validate-config"
     local errors
     errors="$(ghostty +validate-config 2>&1 || true)"
+    _dbg "validate_and_reload: validate done, errors='$errors'"
     if [[ -n "$errors" ]]; then
       echo ""
       echo "⚠ Config validation errors:"
@@ -100,8 +114,18 @@ validate_and_reload() {
       read -r
       return 1
     fi
-    ghostty +reload-config 2>/dev/null || true
-    echo "✓ Config saved and reloaded."
+    # NOTE: ghostty +reload-config sends a signal to the running Ghostty instance.
+    # If this TUI is running INSIDE Ghostty, the reload may restart/crash the window.
+    # We warn the user and skip reload in that case.
+    if [[ -n "${GHOSTTY_PID:-}" ]]; then
+      _dbg "validate_and_reload: inside Ghostty (GHOSTTY_PID=$GHOSTTY_PID) — skipping reload, config saved"
+      echo "✓ Config saved. Ghostty will apply changes on next launch or manual ⌘R."
+    else
+      _dbg "validate_and_reload: running ghostty +reload-config"
+      ghostty +reload-config 2>/dev/null || true
+      _dbg "validate_and_reload: reload done"
+      echo "✓ Config saved and reloaded."
+    fi
   else
     echo "✓ Config saved (ghostty not in PATH — reload manually)."
   fi
